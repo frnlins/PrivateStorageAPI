@@ -1,8 +1,6 @@
 package br.com.filipelins.privatestorageapi.resource;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -22,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
 import br.com.filipelins.privatestorageapi.domain.ReturnMessage;
+import br.com.filipelins.privatestorageapi.domain.Utils;
 import br.com.filipelins.privatestorageapi.service.StorageService;
 
 @RestController
@@ -31,10 +30,16 @@ public class StorageResouce {
 	@Autowired
 	private StorageService storageService;
 
+//	@GetMapping
+//	public ResponseEntity<ReturnMessage<BucketTO>> listBuckets() {
+//		ReturnMessage<BucketTO> rm = storageService.listBuckets();
+//		return new ResponseEntity<ReturnMessage<BucketTO>>(rm, rm.getHttpStatus());
+//	}
+
 	@GetMapping
-	public ResponseEntity<ReturnMessage<BucketTO>> listBuckets() {
-		ReturnMessage<BucketTO> rm = storageService.listBuckets();
-		return new ResponseEntity<ReturnMessage<BucketTO>>(rm, rm.getHttpStatus());
+	public ResponseEntity<List<BucketTO>> listBuckets() {
+		List<BucketTO> allBuckets = storageService.listBuckets();
+		return ResponseEntity.ok(allBuckets);
 	}
 
 	@PostMapping
@@ -73,28 +78,19 @@ public class StorageResouce {
 			@PathVariable("objectName") String objectName) {
 		ByteArrayResource bar = storageService.downloadObjetc(bucketName, objectName);
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectName)
-				.contentType(extractMediaType(objectName)).contentLength(bar.contentLength()).body(bar);
+				.contentType(Utils.extractMediaType(objectName)).contentLength(bar.contentLength()).body(bar);
 	}
 
 	@GetMapping(path = "/getobject")
 	public ResponseEntity<ByteArrayResource> downloadObject(@RequestBody ObjectTO objectTO) {
 		ByteArrayResource bar = storageService.downloadObjetcLocal(objectTO.getBucketName(), objectTO.getNome());
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectTO.getNome())
-				.contentType(extractMediaType(objectTO.getNome())).contentLength(bar.contentLength()).body(bar);
+				.contentType(Utils.extractMediaType(objectTO.getNome())).contentLength(bar.contentLength()).body(bar);
 	}
 
 	@GetMapping(path = "/downloadlocal")
-	public void downloadObjectLocal(@RequestBody ObjectTO objectTO) {
+	public ResponseEntity<Void> downloadObjectLocal(@RequestBody ObjectTO objectTO) {
 		storageService.downloadObjetcLocalFileSystem(objectTO.getBucketName(), objectTO.getNome());
-	}
-
-	private MediaType extractMediaType(String objectName) {
-		Path file = Path.of(objectName);
-		try {
-			String contentType = Files.probeContentType(file);
-			return MediaType.parseMediaType(contentType);
-		} catch (IOException e) {
-			return MediaType.APPLICATION_OCTET_STREAM;
-		}
+		return ResponseEntity.noContent().build();
 	}
 }

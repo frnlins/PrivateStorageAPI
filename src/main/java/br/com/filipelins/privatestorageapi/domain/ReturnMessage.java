@@ -10,7 +10,7 @@ public class ReturnMessage<T> {
 	private String message;
 	private HttpStatus httpStatus;
 	private String exceptionMessage;
-	private List<T> lista;
+	private List<T> dados;
 
 	public ReturnMessage(String message) {
 		this(message, HttpStatus.BAD_REQUEST);
@@ -24,15 +24,15 @@ public class ReturnMessage<T> {
 		this(message, httpStatus, exceptionMessage, Collections.emptyList());
 	}
 
-	public ReturnMessage(String message, HttpStatus httpStatus, List<T> lista) {
-		this(message, httpStatus, "", lista);
+	public ReturnMessage(String message, HttpStatus httpStatus, List<T> dados) {
+		this(message, httpStatus, "", dados);
 	}
 
-	public ReturnMessage(String message, HttpStatus httpStatus, String exceptionMessage, List<T> lista) {
+	public ReturnMessage(String message, HttpStatus httpStatus, String exceptionMessage, List<T> dados) {
 		this.message = message;
 		this.httpStatus = httpStatus;
 		this.exceptionMessage = exceptionMessage;
-		this.lista = lista;
+		this.dados = dados;
 	}
 
 	public String getMessage() {
@@ -47,7 +47,7 @@ public class ReturnMessage<T> {
 		return exceptionMessage;
 	}
 
-	public List<T> getLista() {
-		return lista;
+	public List<T> getDados() {
+		return dados;
 	}
 }

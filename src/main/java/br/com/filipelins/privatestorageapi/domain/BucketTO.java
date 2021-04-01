@@ -1,8 +1,6 @@
 package br.com.filipelins.privatestorageapi.domain;
 
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 
 import io.minio.messages.Bucket;
 
@@ -24,6 +22,6 @@ public class BucketTO {
 	}
 
 	public String getDataCriacao() {
-		return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT, FormatStyle.SHORT).format(dataCriacao);
+		return Utils.getFormattedDateTime(dataCriacao);
 	}
 }

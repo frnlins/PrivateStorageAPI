@@ -7,7 +7,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
+import br.com.filipelins.privatestorageapi.domain.PrivateStorageException;
 import br.com.filipelins.privatestorageapi.domain.ReturnMessage;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
@@ -43,26 +43,36 @@ public class StorageService {
 	@Autowired
 	private MinioClient minioStorage;
 
-	public ReturnMessage<BucketTO> listBuckets() {
-		ReturnMessage<BucketTO> retorno = null;
-		List<BucketTO> bucketTOList = Collections.emptyList();
+//	public ReturnMessage<BucketTO> listBuckets() {
+//		ReturnMessage<BucketTO> retorno = null;
+//		List<BucketTO> bucketTOList = Collections.emptyList();
+//
+//		try {
+//			List<Bucket> bucketList = minioStorage.listBuckets();
+//
+//			if (!bucketList.isEmpty()) {
+//				bucketTOList = bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
+//				retorno = new ReturnMessage<BucketTO>("Buckets encontrados com sucesso", HttpStatus.OK, bucketTOList);
+//			} else {
+//				retorno = new ReturnMessage<BucketTO>("Não há buckets!", HttpStatus.OK);
+//			}
+//
+//		} catch (Exception e) {
+//			retorno = new ReturnMessage<BucketTO>("Erro ao listar os Buckets", HttpStatus.BAD_REQUEST,
+//					e.getMessage());
+//		}
+//
+//		return retorno;
+//	}
 
+	public List<BucketTO> listBuckets() {
+		List<Bucket> bucketList;
 		try {
-			List<Bucket> bucketList = minioStorage.listBuckets();
-
-			if (!bucketList.isEmpty()) {
-				bucketTOList = bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
-				retorno = new ReturnMessage<BucketTO>("Buckets encontrados com sucesso", HttpStatus.OK, bucketTOList);
-			} else {
-				retorno = new ReturnMessage<BucketTO>("Não há buckets!", HttpStatus.OK);
-			}
-
-		} catch (Exception e) {
-			retorno = new ReturnMessage<BucketTO>("Erro ao listar os Buckets", HttpStatus.INTERNAL_SERVER_ERROR,
-					e.getMessage());
+			bucketList = minioStorage.listBuckets();
+		} catch (Exception ex) {
+			throw new PrivateStorageException("Não foi possivel obter os buckets", ex);
 		}
-
-		return retorno;
+		return bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
 	}
 
 	public ReturnMessage<BucketTO> createBucket(String bucketName) {
@@ -72,7 +82,7 @@ public class StorageService {
 				if (!isBucketExists(bucketName)) {
 					minioStorage.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
 					retorno = new ReturnMessage<BucketTO>("Bucket: '" + bucketName + "', criado com sucesso",
-							HttpStatus.OK);
+							HttpStatus.CREATED);
 				} else {
 					retorno = new ReturnMessage<BucketTO>("Erro: O bucket, '" + bucketName + "', já existe");
 				}

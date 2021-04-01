@@ -1,10 +1,7 @@
 package br.com.filipelins.privatestorageapi.domain;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 
 import io.minio.messages.Item;
 
@@ -30,12 +27,11 @@ public class ObjectTO {
 	}
 
 	public String getTamanho() {
-		BigDecimal tamanhoKB = BigDecimal.valueOf(tamanho);
-		return tamanhoKB.divide(BigDecimal.valueOf(1024)).setScale(2, RoundingMode.HALF_UP) + " KB";
+		return Utils.getBytesToKB(BigDecimal.valueOf(tamanho), 2) + " KB";
 	}
 
 	public String getUltimaAlteracao() {
-		return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).format(ultimaAlteracao);
+		return Utils.getFormattedDateTime(ultimaAlteracao);
 	}
 
 	public String getBucketName() {
