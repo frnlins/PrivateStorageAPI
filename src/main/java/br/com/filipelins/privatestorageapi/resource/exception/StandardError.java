@@ -10,11 +10,11 @@ public class StandardError {
 	private final String error;
 	private final String localDateTime;
 
-	public StandardError(Integer status, String error, LocalDateTime localDateTime) {
+	public StandardError(Integer status, String error) {
 		super();
 		this.status = status;
 		this.error = error;
-		this.localDateTime = Utils.getFormattedDateTime(localDateTime);
+		this.localDateTime = Utils.getFormattedDateTime(LocalDateTime.now());
 	}
 
 	public Integer getStatus() {

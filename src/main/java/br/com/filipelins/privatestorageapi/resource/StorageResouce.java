@@ -1,6 +1,9 @@
 package br.com.filipelins.privatestorageapi.resource;
 
+import java.net.URI;
 import java.util.List;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
@@ -30,22 +34,18 @@ public class StorageResouce {
 	@Autowired
 	private StorageService storageService;
 
-//	@GetMapping
-//	public ResponseEntity<ReturnMessage<BucketTO>> listBuckets() {
-//		ReturnMessage<BucketTO> rm = storageService.listBuckets();
-//		return new ResponseEntity<ReturnMessage<BucketTO>>(rm, rm.getHttpStatus());
-//	}
-
 	@GetMapping
 	public ResponseEntity<List<BucketTO>> listBuckets() {
-		List<BucketTO> allBuckets = storageService.listBuckets();
-		return ResponseEntity.ok(allBuckets);
+		List<BucketTO> bucketList = storageService.listBuckets();
+		return ResponseEntity.ok(bucketList);
 	}
 
 	@PostMapping
-	public ResponseEntity<ReturnMessage<BucketTO>> createBucket(@RequestBody BucketTO bucketTO) {
-		ReturnMessage<BucketTO> rm = storageService.createBucket(bucketTO.getNome());
-		return new ResponseEntity<ReturnMessage<BucketTO>>(rm, rm.getHttpStatus());
+	public ResponseEntity<Void> createBucket(@Valid @RequestBody BucketTO bucketTO) {
+		storageService.createBucket(bucketTO.getNome());
+		URI createdURI = ServletUriComponentsBuilder.fromCurrentRequest().path("/{bucketName}")
+				.buildAndExpand(bucketTO.getNome()).toUri();
+		return ResponseEntity.created(createdURI).build();
 	}
 
 	@GetMapping("/listobjects")

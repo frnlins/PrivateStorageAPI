@@ -2,10 +2,13 @@ package br.com.filipelins.privatestorageapi.domain;
 
 import java.time.ZonedDateTime;
 
+import javax.validation.constraints.NotBlank;
+
 import io.minio.messages.Bucket;
 
 public class BucketTO {
 
+	@NotBlank(message = "{bucket.nome.not.blank}")
 	private String nome;
 	private ZonedDateTime dataCriacao;
 

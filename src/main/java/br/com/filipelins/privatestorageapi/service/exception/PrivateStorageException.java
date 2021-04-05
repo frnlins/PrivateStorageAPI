@@ -1,4 +1,4 @@
-package br.com.filipelins.privatestorageapi.domain;
+package br.com.filipelins.privatestorageapi.service.exception;
 
 public class PrivateStorageException extends RuntimeException {
 

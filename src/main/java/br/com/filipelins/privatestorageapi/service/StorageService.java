@@ -1,11 +1,16 @@
 package br.com.filipelins.privatestorageapi.service;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,8 +23,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
-import br.com.filipelins.privatestorageapi.domain.PrivateStorageException;
 import br.com.filipelins.privatestorageapi.domain.ReturnMessage;
+import br.com.filipelins.privatestorageapi.resource.exception.StandardError;
+import br.com.filipelins.privatestorageapi.service.exception.PrivateStorageException;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
@@ -32,6 +38,13 @@ import io.minio.RemoveBucketArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.MinioException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 import io.minio.messages.Bucket;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
@@ -43,57 +56,41 @@ public class StorageService {
 	@Autowired
 	private MinioClient minioStorage;
 
-//	public ReturnMessage<BucketTO> listBuckets() {
-//		ReturnMessage<BucketTO> retorno = null;
-//		List<BucketTO> bucketTOList = Collections.emptyList();
-//
-//		try {
-//			List<Bucket> bucketList = minioStorage.listBuckets();
-//
-//			if (!bucketList.isEmpty()) {
-//				bucketTOList = bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
-//				retorno = new ReturnMessage<BucketTO>("Buckets encontrados com sucesso", HttpStatus.OK, bucketTOList);
-//			} else {
-//				retorno = new ReturnMessage<BucketTO>("Não há buckets!", HttpStatus.OK);
-//			}
-//
-//		} catch (Exception e) {
-//			retorno = new ReturnMessage<BucketTO>("Erro ao listar os Buckets", HttpStatus.BAD_REQUEST,
-//					e.getMessage());
-//		}
-//
-//		return retorno;
-//	}
-
 	public List<BucketTO> listBuckets() {
 		List<Bucket> bucketList;
+
 		try {
 			bucketList = minioStorage.listBuckets();
-		} catch (Exception ex) {
-			throw new PrivateStorageException("Não foi possivel obter os buckets", ex);
+		} catch (MinioException e) {
+			throw new PrivateStorageException("MinioException: " + e.getMessage(), e.getCause());
+		} catch (InvalidKeyException e) {
+			throw new PrivateStorageException("InvalidKeyException: " + e.getMessage(), e.getCause());
+		} catch (NoSuchAlgorithmException e) {
+			throw new PrivateStorageException("NoSuchAlgorithmException: " + e.getMessage(), e.getCause());
+		} catch (IOException e) {
+			throw new PrivateStorageException("IOException: " + e.getMessage(), e.getCause());
 		}
+
 		return bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
 	}
 
-	public ReturnMessage<BucketTO> createBucket(String bucketName) {
-		ReturnMessage<BucketTO> retorno;
+	public void createBucket(String bucketName) {
 		try {
-			if (!bucketName.isBlank()) {
-				if (!isBucketExists(bucketName)) {
-					minioStorage.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-					retorno = new ReturnMessage<BucketTO>("Bucket: '" + bucketName + "', criado com sucesso",
-							HttpStatus.CREATED);
-				} else {
-					retorno = new ReturnMessage<BucketTO>("Erro: O bucket, '" + bucketName + "', já existe");
-				}
-			} else {
-				retorno = new ReturnMessage<BucketTO>("Erro: O nome do bucket é nulo ou vazio");
-			}
-		} catch (Exception e) {
-			retorno = new ReturnMessage<BucketTO>("Erro ao criar o bucket: '" + bucketName + "' " + e);
+			minioStorage.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+		} catch (MinioException e) {
+			throw new PrivateStorageException("Não foi possível criar o bucket '" + bucketName
+					+ "', ele provavelmente já existe." , e.getCause());
+		} catch (InvalidKeyException e) {
+			throw new PrivateStorageException("InvalidKeyException: " + e.getMessage(), e.getCause());
+		} catch (NoSuchAlgorithmException e) {
+			throw new PrivateStorageException("NoSuchAlgorithmException: " + e.getMessage(), e.getCause());
+		} catch (IllegalArgumentException e) {
+			throw new PrivateStorageException(
+					"Não é possível criar um bucket de nome '" + bucketName + "', pois está fora do padrão ",
+					e.getCause());
+		} catch (IOException e) {
+			throw new PrivateStorageException("IOException: " + e.getMessage(), e.getCause());
 		}
-
-		return retorno;
 	}
 
 	public ReturnMessage<ObjectTO> listBucketObjects(String bucketName) {
