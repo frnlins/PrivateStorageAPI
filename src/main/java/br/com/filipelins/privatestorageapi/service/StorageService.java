@@ -3,15 +3,16 @@ package br.com.filipelins.privatestorageapi.service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ConnectException;
-import java.net.HttpURLConnection;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,6 @@ import org.springframework.web.multipart.MultipartFile;
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
 import br.com.filipelins.privatestorageapi.domain.ReturnMessage;
-import br.com.filipelins.privatestorageapi.resource.exception.StandardError;
 import br.com.filipelins.privatestorageapi.service.exception.PrivateStorageException;
 import io.minio.BucketExistsArgs;
 import io.minio.DownloadObjectArgs;
@@ -42,7 +42,6 @@ import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
 import io.minio.errors.InvalidResponseException;
-import io.minio.errors.MinioException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
 import io.minio.messages.Bucket;
@@ -61,14 +60,8 @@ public class StorageService {
 
 		try {
 			bucketList = minioStorage.listBuckets();
-		} catch (MinioException e) {
-			throw new PrivateStorageException("MinioException: " + e.getMessage(), e.getCause());
-		} catch (InvalidKeyException e) {
-			throw new PrivateStorageException("InvalidKeyException: " + e.getMessage(), e.getCause());
-		} catch (NoSuchAlgorithmException e) {
-			throw new PrivateStorageException("NoSuchAlgorithmException: " + e.getMessage(), e.getCause());
-		} catch (IOException e) {
-			throw new PrivateStorageException("IOException: " + e.getMessage(), e.getCause());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao listar os buckets", e);
 		}
 
 		return bucketList.stream().map(bucket -> new BucketTO(bucket)).collect(Collectors.toList());
@@ -77,76 +70,47 @@ public class StorageService {
 	public void createBucket(String bucketName) {
 		try {
 			minioStorage.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
-		} catch (MinioException e) {
-			throw new PrivateStorageException("Não foi possível criar o bucket '" + bucketName
-					+ "', ele provavelmente já existe." , e.getCause());
-		} catch (InvalidKeyException e) {
-			throw new PrivateStorageException("InvalidKeyException: " + e.getMessage(), e.getCause());
-		} catch (NoSuchAlgorithmException e) {
-			throw new PrivateStorageException("NoSuchAlgorithmException: " + e.getMessage(), e.getCause());
-		} catch (IllegalArgumentException e) {
-			throw new PrivateStorageException(
-					"Não é possível criar um bucket de nome '" + bucketName + "', pois está fora do padrão ",
-					e.getCause());
-		} catch (IOException e) {
-			throw new PrivateStorageException("IOException: " + e.getMessage(), e.getCause());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Não foi possível criar o bucket '" + bucketName + "'", e);
 		}
 	}
 
-	public ReturnMessage<ObjectTO> listBucketObjects(String bucketName) {
+	public List<ObjectTO> listBucketObjects(String bucketName) {
+		List<ObjectTO> objectTOList = new ArrayList<ObjectTO>();
 
-		ReturnMessage<ObjectTO> retorno = null;
-		List<ObjectTO> objectTOList;
+		Iterable<Result<Item>> bucketObjects = minioStorage
+				.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
 
-		try {
-			if (isBucketExists(bucketName)) {
-				objectTOList = getBucketObjects(bucketName);
-
-				if (objectTOList.isEmpty()) {
-					retorno = new ReturnMessage<ObjectTO>("Não há objetos no bucket: '" + bucketName + "'",
-							HttpStatus.OK);
-				} else {
-					retorno = new ReturnMessage<ObjectTO>("Objetos encontados no bucket: '" + bucketName + "'",
-							HttpStatus.OK, objectTOList);
-				}
-			} else {
-				retorno = new ReturnMessage<ObjectTO>("O bucket: '" + bucketName + "' não existe");
-			}
-		} catch (Exception e) {
-			retorno = new ReturnMessage<ObjectTO>("Erro ao recuperar os objetos do bucket: " + bucketName,
-					HttpStatus.BAD_REQUEST, e.getMessage());
+		Item objectItem = null;
+		Iterator<Result<Item>> it = bucketObjects.iterator();
+		while (it.hasNext()) {
+			objectItem = getResultObject(it.next());
+			objectTOList.add(new ObjectTO(objectItem, bucketName));
 		}
 
-		return retorno;
+		return objectTOList;
 	}
 
-	public ReturnMessage<BucketTO> deleteBucket(String bucketName) {
-		ReturnMessage<BucketTO> retorno = null;
-		String objectsDeleteResult = "";
-
-		try {
-			if (isBucketExists(bucketName)) {
-
-				List<ObjectTO> bucketObjects = getBucketObjects(bucketName);
-
-				if (!bucketObjects.isEmpty()) {
-					objectsDeleteResult = deleteObjectsLazy(bucketName, bucketObjects);
+	public void deleteBucket(String bucketName) {
+		List<ObjectTO> bucketObjects = listBucketObjects(bucketName);
+		String deleteObjectsResult;
+		
+		if (!bucketObjects.isEmpty()) {
+			try {
+				deleteObjectsResult = deleteObjects(bucketName, bucketObjects);
+				if (!deleteObjectsResult.isEmpty()) {
+					throw new Exception(deleteObjectsResult);
 				}
-
-				minioStorage.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
-				retorno = new ReturnMessage<BucketTO>(
-						"O bucket: '" + bucketName + "' e todos so seus objetos foram deletados com sucesso!",
-						HttpStatus.OK);
-			} else {
-				retorno = new ReturnMessage<BucketTO>("Erro: o bucket '" + bucketName + "' não existe!");
+			} catch (Exception e) {
+				throw new PrivateStorageException(e.getMessage());
 			}
-		} catch (Exception e) {
-			retorno = new ReturnMessage<BucketTO>(
-					"Erro ao deletar o bucket: '" + bucketName + "'\n" + objectsDeleteResult, HttpStatus.BAD_REQUEST,
-					e.getMessage());
 		}
-
-		return retorno;
+		
+		try {
+			minioStorage.removeBucket(RemoveBucketArgs.builder().bucket(bucketName).build());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao deletar o bucket", e);
+		}
 	}
 
 	public ByteArrayResource downloadObjetc(String bucketName, String objectName) {
@@ -221,27 +185,28 @@ public class StorageService {
 		return retorno;
 	}
 
-	private boolean isBucketExists(String bucketName) throws Exception {
-		return !bucketName.isBlank()
-				&& minioStorage.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
-	}
-
 	private void deleteObject(String bucketName, ObjectTO bucketObject) throws Exception {
 		minioStorage.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(bucketObject.getNome()).build());
 	}
 
-	private String deleteObjectsLazy(String bucketName, List<ObjectTO> bucketObjects) throws Exception {
+	private String deleteObjects(String bucketName, List<ObjectTO> objects) {
 		StringBuffer sb = new StringBuffer();
 
-		List<DeleteObject> deletedObjects = bucketObjects.stream().map(obj -> new DeleteObject(obj.getNome()))
+		List<DeleteObject> objectsToDelete = objects.stream().map(obj -> new DeleteObject(obj.getNome()))
 				.collect(Collectors.toList());
 
 		Iterable<Result<DeleteError>> results = minioStorage
-				.removeObjects(RemoveObjectsArgs.builder().bucket(bucketName).objects(deletedObjects).build());
-
-		for (Result<DeleteError> result : results) {
-			DeleteError err = result.get();
-			sb.append("Erro ao deletar o objeto: " + err.objectName() + "\n");
+				.removeObjects(RemoveObjectsArgs.builder().bucket(bucketName).objects(objectsToDelete).build());
+		
+		Iterator<Result<DeleteError>> it = results.iterator();
+		if(it.hasNext()) {
+			sb.append("Erro ao deletar objetos do bucket: \n");
+			DeleteError err = null;
+			while(it.hasNext()) {
+				err = getResultObject(it.next());
+				sb.append("objeto: ").append(err.objectName());
+				sb.append("\t mensagem: ").append(err.message()).append("\n");
+			}
 		}
 
 		return sb.toString();
@@ -256,6 +221,16 @@ public class StorageService {
 			retorno.add(new ObjectTO(result.get(), bucketName));
 		}
 
+		return retorno;
+	}
+
+	private <T> T getResultObject(Result<T> result) {
+		T retorno = null;
+		try {
+			retorno = result.get();
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao acessar um resultado de operação realizada no object storage", e);
+		}
 		return retorno;
 	}
 }

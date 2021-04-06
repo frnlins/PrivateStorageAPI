@@ -34,12 +34,21 @@ public class StorageResouce {
 	@Autowired
 	private StorageService storageService;
 
+	/**
+	 * Busca todos os bucktes do storage de objetos
+	 * @return lista de todos os buckets do object storage 
+	 */
 	@GetMapping
 	public ResponseEntity<List<BucketTO>> listBuckets() {
 		List<BucketTO> bucketList = storageService.listBuckets();
 		return ResponseEntity.ok(bucketList);
 	}
 
+	/**
+	 * Cria uma bucket a partir de um nome passado no body
+	 * @param bucketTO
+	 * @return no header é possível ver a url para o bucket criado
+	 */
 	@PostMapping
 	public ResponseEntity<Void> createBucket(@Valid @RequestBody BucketTO bucketTO) {
 		storageService.createBucket(bucketTO.getNome());
@@ -47,23 +56,39 @@ public class StorageResouce {
 				.buildAndExpand(bucketTO.getNome()).toUri();
 		return ResponseEntity.created(createdURI).build();
 	}
-
-	@GetMapping("/listobjects")
-	public ResponseEntity<ReturnMessage<ObjectTO>> listObjects(@RequestBody BucketTO bucketTO) {
-		ReturnMessage<ObjectTO> rm = storageService.listBucketObjects(bucketTO.getNome());
-		return new ResponseEntity<ReturnMessage<ObjectTO>>(rm, rm.getHttpStatus());
-	}
-
+	
+	/**
+	 * Obtém os objetos de um bucket
+	 * @param bucketName
+	 * @return lista de objetos do bucket
+	 */
 	@GetMapping("/{bucketName}")
-	public ResponseEntity<ReturnMessage<ObjectTO>> listObjects(@PathVariable("bucketName") String bucketName) {
-		ReturnMessage<ObjectTO> rm = storageService.listBucketObjects(bucketName);
-		return new ResponseEntity<ReturnMessage<ObjectTO>>(rm, rm.getHttpStatus());
+	public ResponseEntity<List<ObjectTO>> listObjects(@PathVariable("bucketName") String bucketName) {
+		List<ObjectTO> objectList = storageService.listBucketObjects(bucketName);
+		return ResponseEntity.ok(objectList);
+	}
+	
+	/**
+	 * Este método demonstra apenas uma outra maneira de chamar e então obter os objetos de um determinado bucket
+	 * @param bucketTO
+	 * @return lista de objetos do bucket
+	 */
+	@GetMapping("/listobjects")
+	public ResponseEntity<List<ObjectTO>> listObjects(@Valid @RequestBody BucketTO bucketTO) {
+		List<ObjectTO> objectList = storageService.listBucketObjects(bucketTO.getNome());
+		return ResponseEntity.ok(objectList);
 	}
 
+	/**
+	 * Deleta um bucket do storage junto com seus objetos.
+	 * 
+	 * @param bucketTO
+	 * @return
+	 */
 	@DeleteMapping
-	public ResponseEntity<ReturnMessage<BucketTO>> deleteBucket(@RequestBody BucketTO bucketTO) {
-		ReturnMessage<BucketTO> rm = storageService.deleteBucket(bucketTO.getNome());
-		return new ResponseEntity<ReturnMessage<BucketTO>>(rm, rm.getHttpStatus());
+	public ResponseEntity<Void> deleteBucket(@Valid @RequestBody BucketTO bucketTO) {
+		storageService.deleteBucket(bucketTO.getNome());
+		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

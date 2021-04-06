@@ -8,12 +8,14 @@ public class StandardError {
 
 	private final Integer status;
 	private final String error;
+	private final String exceptionMessage;
 	private final String localDateTime;
 
-	public StandardError(Integer status, String error) {
+	public StandardError(Integer status, String error, String exceptionMessage) {
 		super();
 		this.status = status;
 		this.error = error;
+		this.exceptionMessage = exceptionMessage;
 		this.localDateTime = Utils.getFormattedDateTime(LocalDateTime.now());
 	}
 
@@ -23,6 +25,10 @@ public class StandardError {
 
 	public String getError() {
 		return error;
+	}
+	
+	public String getExceptionMessage() {
+		return exceptionMessage;
 	}
 
 	public String getLocalDateTime() {

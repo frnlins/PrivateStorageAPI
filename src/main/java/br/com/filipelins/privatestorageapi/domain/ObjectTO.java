@@ -3,13 +3,17 @@ package br.com.filipelins.privatestorageapi.domain;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
+import javax.validation.constraints.NotBlank;
+
 import io.minio.messages.Item;
 
 public class ObjectTO {
 
+	@NotBlank(message = "{object.nome.not.blank}")
 	private String nome;
 	private Long tamanho;
 	private ZonedDateTime ultimaAlteracao;
+	@NotBlank(message = "{object.bucket.not.blank}")
 	private String bucketName;
 
 	public ObjectTO() {
