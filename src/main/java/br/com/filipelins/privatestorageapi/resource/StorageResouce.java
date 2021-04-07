@@ -6,8 +6,6 @@ import java.util.List;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,8 +21,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
-import br.com.filipelins.privatestorageapi.domain.ReturnMessage;
-import br.com.filipelins.privatestorageapi.domain.Utils;
 import br.com.filipelins.privatestorageapi.service.StorageService;
 
 @RestController
@@ -36,7 +32,8 @@ public class StorageResouce {
 
 	/**
 	 * Busca todos os bucktes do storage de objetos
-	 * @return lista de todos os buckets do object storage 
+	 * 
+	 * @return lista de todos os buckets do object storage
 	 */
 	@GetMapping
 	public ResponseEntity<List<BucketTO>> listBuckets() {
@@ -46,7 +43,8 @@ public class StorageResouce {
 
 	/**
 	 * Cria uma bucket a partir de um nome passado no body
-	 * @param bucketTO
+	 * 
+	 * @param bucketTO objeto que contém o nome do bucket
 	 * @return no header é possível ver a url para o bucket criado
 	 */
 	@PostMapping
@@ -56,10 +54,11 @@ public class StorageResouce {
 				.buildAndExpand(bucketTO.getNome()).toUri();
 		return ResponseEntity.created(createdURI).build();
 	}
-	
+
 	/**
 	 * Obtém os objetos de um bucket
-	 * @param bucketName
+	 * 
+	 * @param bucketName nome do bucket
 	 * @return lista de objetos do bucket
 	 */
 	@GetMapping("/{bucketName}")
@@ -67,10 +66,12 @@ public class StorageResouce {
 		List<ObjectTO> objectList = storageService.listBucketObjects(bucketName);
 		return ResponseEntity.ok(objectList);
 	}
-	
+
 	/**
-	 * Este método demonstra apenas uma outra maneira de chamar e então obter os objetos de um determinado bucket
-	 * @param bucketTO
+	 * Este método demonstra apenas uma outra maneira de chamar e então obter os
+	 * objetos de um determinado bucket
+	 * 
+	 * @param bucketTO objeto contendo o nome do bucket
 	 * @return lista de objetos do bucket
 	 */
 	@GetMapping("/listobjects")
@@ -82,7 +83,7 @@ public class StorageResouce {
 	/**
 	 * Deleta um bucket do storage junto com seus objetos.
 	 * 
-	 * @param bucketTO
+	 * @param bucketTO objeto contendo o nome do bucket que será deletado
 	 * @return
 	 */
 	@DeleteMapping
@@ -91,31 +92,51 @@ public class StorageResouce {
 		return ResponseEntity.noContent().build();
 	}
 
-	@PostMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<ReturnMessage<ObjectTO>> uploadObject(@PathVariable("bucketName") String bucketName,
-			@RequestParam("object") MultipartFile multipartFile) {
-		ReturnMessage<ObjectTO> rm = storageService.putObject(bucketName, multipartFile);
-		return new ResponseEntity<ReturnMessage<ObjectTO>>(rm, rm.getHttpStatus());
-	}
-
-	@GetMapping(path = "/{bucketName}/{objectName}")
-	public ResponseEntity<ByteArrayResource> downloadObject(@PathVariable("bucketName") String bucketName,
-			@PathVariable("objectName") String objectName) {
-		ByteArrayResource bar = storageService.downloadObjetc(bucketName, objectName);
-		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectName)
-				.contentType(Utils.extractMediaType(objectName)).contentLength(bar.contentLength()).body(bar);
-	}
-
-	@GetMapping(path = "/getobject")
-	public ResponseEntity<ByteArrayResource> downloadObject(@RequestBody ObjectTO objectTO) {
-		ByteArrayResource bar = storageService.downloadObjetcLocal(objectTO.getBucketName(), objectTO.getNome());
-		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectTO.getNome())
-				.contentType(Utils.extractMediaType(objectTO.getNome())).contentLength(bar.contentLength()).body(bar);
-	}
-
-	@GetMapping(path = "/downloadlocal")
-	public ResponseEntity<Void> downloadObjectLocal(@RequestBody ObjectTO objectTO) {
-		storageService.downloadObjetcLocalFileSystem(objectTO.getBucketName(), objectTO.getNome());
+	/**
+	 * Deleta um ou mais objetos de um determinado bucket
+	 * 
+	 * @param bucketName   nome do bucket
+	 * @param listObjectTO lista dos com o nome dos objetos a serem deletados
+	 * @return
+	 */
+	@DeleteMapping("/{bucketName}")
+	public ResponseEntity<Void> deleteObject(@PathVariable("bucketName") String bucketName,
+			@RequestBody ObjectTO... listObjectTO) {
+		storageService.deleteObject(bucketName, listObjectTO);
 		return ResponseEntity.noContent().build();
 	}
+
+	/**
+	 * Faz upload de um ou mais arquivos para o serviço de storage
+	 * @param bucketName nome do bucket onde ficarão os arquivos
+	 * @param multipartFiles o(s) arquivos que serão enviados
+	 * @return
+	 */
+	@PostMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<Void> uploadObject(@PathVariable("bucketName") String bucketName,
+			@RequestParam("object") MultipartFile... multipartFiles) {
+		storageService.putObject(bucketName, multipartFiles);
+		return ResponseEntity.noContent().build();
+	}
+
+//	@GetMapping(path = "/{bucketName}/{objectName}")
+//	public ResponseEntity<ByteArrayResource> downloadObject(@PathVariable("bucketName") String bucketName,
+//			@PathVariable("objectName") String objectName) {
+//		ByteArrayResource bar = storageService.downloadObjetc(bucketName, objectName);
+//		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectName)
+//				.contentType(Utils.extractMediaType(objectName)).contentLength(bar.contentLength()).body(bar);
+//	}
+//
+//	@GetMapping(path = "/getobject")
+//	public ResponseEntity<ByteArrayResource> downloadObject(@RequestBody ObjectTO objectTO) {
+//		ByteArrayResource bar = storageService.downloadObjetcLocal(objectTO.getBucketName(), objectTO.getNome());
+//		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectTO.getNome())
+//				.contentType(Utils.extractMediaType(objectTO.getNome())).contentLength(bar.contentLength()).body(bar);
+//	}
+//
+//	@GetMapping(path = "/downloadlocal")
+//	public ResponseEntity<Void> downloadObjectLocal(@RequestBody ObjectTO objectTO) {
+//		storageService.downloadObjetcLocalFileSystem(objectTO.getBucketName(), objectTO.getNome());
+//		return ResponseEntity.noContent().build();
+//	}
 }

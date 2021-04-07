@@ -1,11 +1,10 @@
 package br.com.filipelins.privatestorageapi.domain;
 
 import java.math.BigDecimal;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import javax.validation.constraints.NotBlank;
-
-import io.minio.messages.Item;
 
 public class ObjectTO {
 
@@ -13,17 +12,14 @@ public class ObjectTO {
 	private String nome;
 	private Long tamanho;
 	private ZonedDateTime ultimaAlteracao;
-	@NotBlank(message = "{object.bucket.not.blank}")
-	private String bucketName;
-
+	
 	public ObjectTO() {
 	}
 
-	public ObjectTO(Item item, String bucketName) {
-		this.nome = item.objectName();
-		this.tamanho = item.size();
-		this.ultimaAlteracao = item.lastModified();
-		this.bucketName = bucketName;
+	public ObjectTO(String nome, Long tamanho, ZonedDateTime ultimaAlteracao) {
+		this.nome = nome;
+		this.tamanho = tamanho;
+		this.ultimaAlteracao = ultimaAlteracao.withZoneSameInstant(ZoneId.systemDefault());
 	}
 
 	public String getNome() {
@@ -36,9 +32,5 @@ public class ObjectTO {
 
 	public String getUltimaAlteracao() {
 		return Utils.getFormattedDateTime(ultimaAlteracao);
-	}
-
-	public String getBucketName() {
-		return bucketName;
 	}
 }
