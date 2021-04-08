@@ -6,6 +6,8 @@ import java.util.List;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,7 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
+import br.com.filipelins.privatestorageapi.domain.ExtendedObjectTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
+import br.com.filipelins.privatestorageapi.domain.Utils;
 import br.com.filipelins.privatestorageapi.service.StorageService;
 
 @RestController
@@ -108,35 +112,45 @@ public class StorageResouce {
 
 	/**
 	 * Faz upload de um ou mais arquivos para o serviço de storage
-	 * @param bucketName nome do bucket onde ficarão os arquivos
+	 * 
+	 * @param bucketName     nome do bucket onde ficarão os arquivos
 	 * @param multipartFiles o(s) arquivos que serão enviados
 	 * @return
 	 */
 	@PostMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Void> uploadObject(@PathVariable("bucketName") String bucketName,
+	public ResponseEntity<Void> putObject(@PathVariable("bucketName") String bucketName,
 			@RequestParam("object") MultipartFile... multipartFiles) {
 		storageService.putObject(bucketName, multipartFiles);
 		return ResponseEntity.noContent().build();
 	}
 
-//	@GetMapping(path = "/{bucketName}/{objectName}")
-//	public ResponseEntity<ByteArrayResource> downloadObject(@PathVariable("bucketName") String bucketName,
-//			@PathVariable("objectName") String objectName) {
-//		ByteArrayResource bar = storageService.downloadObjetc(bucketName, objectName);
-//		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectName)
-//				.contentType(Utils.extractMediaType(objectName)).contentLength(bar.contentLength()).body(bar);
-//	}
-//
-//	@GetMapping(path = "/getobject")
-//	public ResponseEntity<ByteArrayResource> downloadObject(@RequestBody ObjectTO objectTO) {
-//		ByteArrayResource bar = storageService.downloadObjetcLocal(objectTO.getBucketName(), objectTO.getNome());
-//		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + objectTO.getNome())
-//				.contentType(Utils.extractMediaType(objectTO.getNome())).contentLength(bar.contentLength()).body(bar);
-//	}
-//
-//	@GetMapping(path = "/downloadlocal")
-//	public ResponseEntity<Void> downloadObjectLocal(@RequestBody ObjectTO objectTO) {
-//		storageService.downloadObjetcLocalFileSystem(objectTO.getBucketName(), objectTO.getNome());
-//		return ResponseEntity.noContent().build();
-//	}
+	/**
+	 * Busca informações mais detalhadas sobre um determinado objeto de um bucket
+	 * 
+	 * @param bucketName
+	 * @param objectName
+	 * @return
+	 */
+	@GetMapping(path = "/{bucketName}/info/{objectName}")
+	public ResponseEntity<ExtendedObjectTO> objectInfo(@PathVariable("bucketName") String bucketName,
+			@PathVariable("objectName") String objectName) {
+		return ResponseEntity.ok(storageService.objectInfo(bucketName, objectName));
+	}
+
+	/**
+	 * Recupera o objeto do storage para download pelo usuário
+	 * 
+	 * @param bucketName
+	 * @param objectName
+	 * @return Array de bytes contendo o objeto do bucket.
+	 */
+	@GetMapping(path = "/{bucketName}/{objectName}")
+	public ResponseEntity<ByteArrayResource> getObject(@PathVariable("bucketName") String bucketName,
+			@PathVariable("objectName") String objectName) {
+		var object = storageService.objectInfo(bucketName, objectName);
+		var resource = storageService.getObjetc(bucketName, objectName);
+		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + object.getNome())
+				.contentType(Utils.getMediaTypeFromContentType(object.getContentType()))
+				.contentLength(resource.contentLength()).body(resource);
+	}
 }

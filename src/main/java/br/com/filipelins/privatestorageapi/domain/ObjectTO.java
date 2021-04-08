@@ -12,7 +12,7 @@ public class ObjectTO {
 	private String nome;
 	private Long tamanho;
 	private ZonedDateTime ultimaAlteracao;
-	
+
 	public ObjectTO() {
 	}
 

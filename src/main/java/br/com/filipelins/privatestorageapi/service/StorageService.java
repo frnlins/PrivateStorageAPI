@@ -1,11 +1,6 @@
 package br.com.filipelins.privatestorageapi.service;
 
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -18,9 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
+import br.com.filipelins.privatestorageapi.domain.ExtendedObjectTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
 import br.com.filipelins.privatestorageapi.service.exception.PrivateStorageException;
-import io.minio.DownloadObjectArgs;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.ListObjectsArgs;
@@ -31,6 +26,7 @@ import io.minio.RemoveBucketArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
+import io.minio.StatObjectArgs;
 import io.minio.messages.Bucket;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
@@ -92,57 +88,6 @@ public class StorageService {
 		}
 	}
 
-	public ByteArrayResource downloadObjetc(String bucketName, String objectName) {
-		ByteArrayResource bar = null;
-		try (GetObjectResponse getObjectResponse = minioStorage
-				.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
-			bar = new ByteArrayResource(getObjectResponse.readAllBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return bar;
-	}
-
-	public ByteArrayResource downloadObjetcLocal(String bucketName, String objectName) {
-		ByteArrayResource bar = null;
-		try (GetObjectResponse getObjectResponse = minioStorage
-				.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
-			FileSystem fs = FileSystems.getDefault();
-			Path dirPath = Path.of(".." + fs.getSeparator(), "downloaded_objects");
-			Path filePath = dirPath.resolve(getObjectResponse.object());
-
-			if (!Files.isDirectory(dirPath)) {
-				Files.createDirectory(dirPath);
-			}
-			try (OutputStream out = Files.newOutputStream(filePath)) {
-				out.write(getObjectResponse.readAllBytes());
-
-				try (InputStream in = Files.newInputStream(filePath)) {
-					bar = new ByteArrayResource(in.readAllBytes());
-				}
-			}
-
-		} catch (Exception e) {
-			System.out.println("Erro ao fazer download do arquivo: " + objectName);
-		}
-
-		return bar;
-	}
-
-	public void downloadObjetcLocalFileSystem(String bucketName, String objectName) {
-		FileSystem fs = FileSystems.getDefault();
-		Path dirPath = Path.of(".." + fs.getSeparator(), "downloaded_objects");
-		Path filePath = dirPath.resolve(objectName);
-
-		try {
-			minioStorage.downloadObject(DownloadObjectArgs.builder().bucket(bucketName).object(objectName)
-					.filename(filePath.toString()).build());
-		} catch (Exception e) {
-			System.out.println("Erro ao fazer download do arquivo localmente: " + e.getMessage());
-		}
-	}
-
 	public void putObject(String bucketName, MultipartFile[] multipartFiles) {
 		for (MultipartFile multipartFile : multipartFiles) {
 			try (InputStream is = multipartFile.getInputStream()) {
@@ -172,6 +117,31 @@ public class StorageService {
 		default:
 			deleteObjects(bucketName, Arrays.asList(listObjectTO));
 		}
+	}
+
+	public ExtendedObjectTO objectInfo(String bucketName, String objectName) {
+		ExtendedObjectTO objectTO = null;
+		try {
+			var response = minioStorage
+					.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
+			objectTO = new ExtendedObjectTO(response.object(), response.size(), response.lastModified(),
+					response.contentType(), response.versionId(), response.userMetadata());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao recuperar informações do objeto", e);
+		}
+		return objectTO;
+	}
+
+	public ByteArrayResource getObjetc(String bucketName, String objectName) {
+		ByteArrayResource bar = null;
+		try (GetObjectResponse getObjectResponse = minioStorage
+				.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
+			bar = new ByteArrayResource(getObjectResponse.readAllBytes());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao recuperar o objeto do storage", e);
+		}
+
+		return bar;
 	}
 
 	private void deleteObjects(String bucketName, List<ObjectTO> objects) {

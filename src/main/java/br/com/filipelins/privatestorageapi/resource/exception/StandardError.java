@@ -9,14 +9,14 @@ public class StandardError {
 	private final Integer status;
 	private final String error;
 	private final String exceptionMessage;
-	private final String localDateTime;
+	private final String dataHora;
 
 	public StandardError(Integer status, String error, String exceptionMessage) {
 		super();
 		this.status = status;
 		this.error = error;
 		this.exceptionMessage = exceptionMessage;
-		this.localDateTime = Utils.getFormattedDateTime(LocalDateTime.now());
+		this.dataHora = Utils.getFormattedDateTime(LocalDateTime.now());
 	}
 
 	public Integer getStatus() {
@@ -31,7 +31,7 @@ public class StandardError {
 		return exceptionMessage;
 	}
 
-	public String getLocalDateTime() {
-		return localDateTime;
+	public String getDataHora() {
+		return dataHora;
 	}
 }
