@@ -106,13 +106,7 @@ public class StorageService {
 		case 0:
 			throw new PrivateStorageException("Não foram passados objetos para serem deletados");
 		case 1:
-			ObjectTO bucketObject = listObjectTO[0];
-			try {
-				minioStorage.removeObject(
-						RemoveObjectArgs.builder().bucket(bucketName).object(bucketObject.getNome()).build());
-			} catch (Exception e) {
-				throw new PrivateStorageException("Erro ao deletar o objeto do bucket", e);
-			}
+			deleteObject(bucketName, listObjectTO[0]);
 			break;
 		default:
 			deleteObjects(bucketName, Arrays.asList(listObjectTO));
@@ -142,6 +136,15 @@ public class StorageService {
 		}
 
 		return bar;
+	}
+	
+	private void deleteObject(String bucketName, ObjectTO objectTO) {
+		try {
+			minioStorage.removeObject(
+					RemoveObjectArgs.builder().bucket(bucketName).object(objectTO.getNome()).build());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Erro ao deletar o objeto do bucket", e);
+		}
 	}
 
 	private void deleteObjects(String bucketName, List<ObjectTO> objects) {
