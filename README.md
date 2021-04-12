@@ -16,5 +16,6 @@ Após subir a aplicação e o MinIO, o endereço http://localhost:8080/storage j
 Como fonte de consulta, [referência de API para Cliente Java](https://docs.min.io/docs/java-client-api-reference.html)
 
 Foi utilizada a configuração básica, que se resume em:
-- Fazer o download do executável do minio server: [minio.exe](https://min.io/download).
+- Fazer o download do executável do minio server: [minio.exe](https://min.io/download)
 - Executar via terminal `minio.exe server .\{nome da pasta}`
+- O MinIO já vem com uma interface que pode ser acessada através do http://localhost:9000
