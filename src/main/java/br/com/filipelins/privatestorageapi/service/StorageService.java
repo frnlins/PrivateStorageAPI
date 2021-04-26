@@ -3,8 +3,11 @@ package br.com.filipelins.privatestorageapi.service;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,7 @@ import br.com.filipelins.privatestorageapi.domain.ObjectTO;
 import br.com.filipelins.privatestorageapi.service.exception.PrivateStorageException;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.ListObjectsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -27,6 +31,7 @@ import io.minio.RemoveObjectArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
 import io.minio.StatObjectArgs;
+import io.minio.http.Method;
 import io.minio.messages.Bucket;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
@@ -126,7 +131,7 @@ public class StorageService {
 		return objectTO;
 	}
 
-	public ByteArrayResource getObjetc(String bucketName, String objectName) {
+	public ByteArrayResource getObject(String bucketName, String objectName) {
 		ByteArrayResource bar = null;
 		try (GetObjectResponse getObjectResponse = minioStorage
 				.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
@@ -137,11 +142,32 @@ public class StorageService {
 
 		return bar;
 	}
+
+	public String getPresignedObjectUrl(String bucketName, String objectName) {
+		try {
+			return minioStorage.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().method(Method.GET)
+					.bucket(bucketName).object(objectName).expiry(1, TimeUnit.MINUTES).build());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
+		}
+	}
 	
+	public String putPresignedObjectUrl(String bucketName, String objectName) {
+		try {
+			Map<String, String> requestParam = new HashMap<String, String>(1);
+			requestParam.put("response-content-type", "application/json");
+			
+			return minioStorage.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().method(Method.PUT)
+					.bucket(bucketName).object(objectName).expiry(5, TimeUnit.MINUTES).
+					extraQueryParams(requestParam).build());
+		} catch (Exception e) {
+			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
+		}
+	}
+
 	private void deleteObject(String bucketName, ObjectTO objectTO) {
 		try {
-			minioStorage.removeObject(
-					RemoveObjectArgs.builder().bucket(bucketName).object(objectTO.getNome()).build());
+			minioStorage.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(objectTO.getNome()).build());
 		} catch (Exception e) {
 			throw new PrivateStorageException("Erro ao deletar o objeto do bucket", e);
 		}

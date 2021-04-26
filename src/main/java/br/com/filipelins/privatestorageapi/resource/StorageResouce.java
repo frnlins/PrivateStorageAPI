@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -117,7 +118,7 @@ public class StorageResouce {
 	 * @param multipartFiles o(s) arquivos que serão enviados
 	 * @return
 	 */
-	@PostMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PutMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Void> putObject(@PathVariable("bucketName") String bucketName,
 			@RequestParam("object") MultipartFile... multipartFiles) {
 		storageService.putObject(bucketName, multipartFiles);
@@ -148,9 +149,37 @@ public class StorageResouce {
 	public ResponseEntity<ByteArrayResource> getObject(@PathVariable("bucketName") String bucketName,
 			@PathVariable("objectName") String objectName) {
 		var object = storageService.objectInfo(bucketName, objectName);
-		var resource = storageService.getObjetc(bucketName, objectName);
+		var resource = storageService.getObject(bucketName, objectName);
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + object.getNome())
 				.contentType(Utils.getMediaTypeFromContentType(object.getContentType()))
 				.contentLength(resource.contentLength()).body(resource);
+	}
+
+	/**
+	 * Retorna uma url para executar uma ação (get, post, delete) válida por 1 min
+	 * 
+	 * @param bucketName
+	 * @param objectName
+	 * @return
+	 */
+	@GetMapping(path = "/presignedget/{bucketName}/{objectName}")
+	public ResponseEntity<String> getPresignedObject(@PathVariable("bucketName") String bucketName,
+			@PathVariable("objectName") String objectName) {
+		String url = storageService.getPresignedObjectUrl(bucketName, objectName);
+		return ResponseEntity.ok(url);
+	}
+	
+	/**
+	 * Retorna uma url para executar uma ação (get, post, delete) válida por 1 min
+	 * 
+	 * @param bucketName
+	 * @param objectName
+	 * @return
+	 */
+	@GetMapping(path = "/presignedput/{bucketName}/{objectName}")
+	public ResponseEntity<String> putPresignedObject(@PathVariable("bucketName") String bucketName,
+			@PathVariable("objectName") String objectName) {
+		String url = storageService.putPresignedObjectUrl(bucketName, objectName);
+		return ResponseEntity.ok(url);
 	}
 }

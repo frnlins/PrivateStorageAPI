@@ -1,12 +1,15 @@
 package br.com.filipelins.privatestorageapi.domain;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import javax.validation.constraints.NotBlank;
 
-public class ObjectTO {
+public class ObjectTO implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	@NotBlank(message = "{object.nome.not.blank}")
 	private String nome;

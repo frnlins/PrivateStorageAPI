@@ -1,13 +1,16 @@
 package br.com.filipelins.privatestorageapi.domain;
 
+import java.io.Serializable;
 import java.time.ZonedDateTime;
 
 import javax.validation.constraints.NotBlank;
 
 import io.minio.messages.Bucket;
 
-public class BucketTO {
+public class BucketTO implements Serializable {
 
+	private static final long serialVersionUID = 1L;
+	
 	@NotBlank(message = "{bucket.nome.not.blank}")
 	private String nome;
 	private ZonedDateTime dataCriacao;

@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 public class ExtendedObjectTO extends ObjectTO {
 
+	private static final long serialVersionUID = 1L;
+	
 	private String contentType;
 	private String versionId;
 	private Map<String, String> userMetadata;
