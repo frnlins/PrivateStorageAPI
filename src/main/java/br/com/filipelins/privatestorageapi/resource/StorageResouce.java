@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import br.com.filipelins.privatestorageapi.domain.BucketTO;
+import br.com.filipelins.privatestorageapi.domain.ConfigPresignedURL;
 import br.com.filipelins.privatestorageapi.domain.ExtendedObjectTO;
 import br.com.filipelins.privatestorageapi.domain.ObjectTO;
 import br.com.filipelins.privatestorageapi.domain.Utils;
@@ -156,30 +157,13 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Retorna uma url para executar uma ação (get, post, delete) válida por 1 min
+	 * Método que gera uma presigned url de acordo com a configuração passada
 	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @return
+	 * @param configPresignedURL
+	 * @return Retorna a presigned url gerada
 	 */
-	@GetMapping(path = "/presignedget/{bucketName}/{objectName}")
-	public ResponseEntity<String> getPresignedObject(@PathVariable("bucketName") String bucketName,
-			@PathVariable("objectName") String objectName) {
-		String url = storageService.getPresignedObjectUrl(bucketName, objectName);
-		return ResponseEntity.ok(url);
-	}
-	
-	/**
-	 * Retorna uma url para executar uma ação (get, post, delete) válida por 1 min
-	 * 
-	 * @param bucketName
-	 * @param objectName
-	 * @return
-	 */
-	@GetMapping(path = "/presignedput/{bucketName}/{objectName}")
-	public ResponseEntity<String> putPresignedObject(@PathVariable("bucketName") String bucketName,
-			@PathVariable("objectName") String objectName) {
-		String url = storageService.putPresignedObjectUrl(bucketName, objectName);
-		return ResponseEntity.ok(url);
+	@GetMapping(path = "/presignedurl")
+	public ResponseEntity<String> presignedURL(@Valid @RequestBody ConfigPresignedURL configPresignedURL) {
+		return ResponseEntity.ok(storageService.presignedURL(configPresignedURL));
 	}
 }
