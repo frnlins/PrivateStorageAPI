@@ -63,24 +63,12 @@ public class StorageService {
 		}
 	}
 
-	public List<ObjectTO> listBucketObjects(String bucketName) {
-		List<ObjectTO> objectTOList = new ArrayList<ObjectTO>();
-
-		Iterable<Result<Item>> bucketObjects = minioStorage
-				.listObjects(ListObjectsArgs.builder().bucket(bucketName).build());
-
-		Item objectItem = null;
-		Iterator<Result<Item>> it = bucketObjects.iterator();
-		while (it.hasNext()) {
-			objectItem = getResultObject(it.next());
-			objectTOList.add(new ObjectTO(objectItem.objectName(), objectItem.size(), objectItem.lastModified()));
-		}
-
-		return objectTOList;
+	public List<ObjectTO> listBucketObjects(String bucketName, String folder) {
+		return listBucketObjects(bucketName, folder, false);
 	}
 
 	public void deleteBucket(String bucketName) {
-		List<ObjectTO> bucketObjects = listBucketObjects(bucketName);
+		List<ObjectTO> bucketObjects = listBucketObjects(bucketName, "", true);
 
 		if (!bucketObjects.isEmpty()) {
 			deleteObjects(bucketName, bucketObjects);
@@ -93,12 +81,13 @@ public class StorageService {
 		}
 	}
 
-	public void putObject(String bucketName, MultipartFile[] multipartFiles) {
+	public void putObject(String bucketName, String folder, MultipartFile[] multipartFiles) {
+		folder = getFolderName(folder);
 		for (MultipartFile multipartFile : multipartFiles) {
 			try (InputStream is = multipartFile.getInputStream()) {
 				minioStorage.putObject(PutObjectArgs.builder().bucket(bucketName)
-						.object(multipartFile.getOriginalFilename()).contentType(multipartFile.getContentType())
-						.stream(is, multipartFile.getSize(), -1).build());
+						.object(folder + multipartFile.getOriginalFilename())
+						.contentType(multipartFile.getContentType()).stream(is, multipartFile.getSize(), -1).build());
 			} catch (Exception e) {
 				throw new PrivateStorageException(
 						"Erro ao fazer upload do objeto: " + multipartFile.getOriginalFilename(), e);
@@ -118,23 +107,24 @@ public class StorageService {
 		}
 	}
 
-	public ExtendedObjectTO objectInfo(String bucketName, String objectName) {
+	public ExtendedObjectTO objectInfo(String bucketName, String objectName, String folder) {
 		ExtendedObjectTO objectTO = null;
+		folder = getFolderName(folder);
 		try {
 			var response = minioStorage
-					.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
-			objectTO = new ExtendedObjectTO(response.object(), response.size(), response.lastModified(),
-					response.contentType(), response.versionId(), response.userMetadata());
+					.statObject(StatObjectArgs.builder().bucket(bucketName).object(folder + objectName).build());
+			objectTO = new ExtendedObjectTO(response);
 		} catch (Exception e) {
 			throw new PrivateStorageException("Erro ao recuperar informações do objeto", e);
 		}
 		return objectTO;
 	}
 
-	public ByteArrayResource getObject(String bucketName, String objectName) {
+	public ByteArrayResource getObject(String bucketName, String objectName, String folder) {
+		folder = getFolderName(folder);
 		ByteArrayResource bar = null;
 		try (GetObjectResponse getObjectResponse = minioStorage
-				.getObject(GetObjectArgs.builder().bucket(bucketName).object(objectName).build())) {
+				.getObject(GetObjectArgs.builder().bucket(bucketName).object(folder + objectName).build())) {
 			bar = new ByteArrayResource(getObjectResponse.readAllBytes());
 		} catch (Exception e) {
 			throw new PrivateStorageException("Erro ao recuperar o objeto do storage", e);
@@ -152,6 +142,22 @@ public class StorageService {
 		} catch (Exception e) {
 			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
 		}
+	}
+	
+	private List<ObjectTO> listBucketObjects(String bucketName, String folder, boolean recursive) {
+		folder = getFolderName(folder);
+		List<ObjectTO> objectTOList = new ArrayList<ObjectTO>();
+		Iterable<Result<Item>> bucketObjects = minioStorage
+				.listObjects(ListObjectsArgs.builder().bucket(bucketName).prefix(folder).recursive(recursive).build());
+
+		Item objectItem = null;
+		Iterator<Result<Item>> it = bucketObjects.iterator();
+		while (it.hasNext()) {
+			objectItem = getResultObject(it.next());
+			objectTOList.add(new ObjectTO(objectItem));
+		}
+
+		return objectTOList;
 	}
 
 	private void deleteObject(String bucketName, ObjectTO objectTO) {
@@ -196,5 +202,9 @@ public class StorageService {
 					e);
 		}
 		return retorno;
+	}
+
+	private String getFolderName(String folder) {
+		return (folder == null || folder.isEmpty()) ? "" : folder + "/";
 	}
 }

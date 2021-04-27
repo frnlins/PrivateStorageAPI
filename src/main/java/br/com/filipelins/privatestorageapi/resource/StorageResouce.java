@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,7 +52,7 @@ public class StorageResouce {
 	 * @param bucketTO objeto que contém o nome do bucket
 	 * @return no header é possível ver a url para o bucket criado
 	 */
-	@PostMapping
+	@PutMapping
 	public ResponseEntity<Void> createBucket(@Valid @RequestBody BucketTO bucketTO) {
 		storageService.createBucket(bucketTO.getNome());
 		URI createdURI = ServletUriComponentsBuilder.fromCurrentRequest().path("/{bucketName}")
@@ -68,8 +67,9 @@ public class StorageResouce {
 	 * @return lista de objetos do bucket
 	 */
 	@GetMapping("/{bucketName}")
-	public ResponseEntity<List<ObjectTO>> listObjects(@PathVariable("bucketName") String bucketName) {
-		List<ObjectTO> objectList = storageService.listBucketObjects(bucketName);
+	public ResponseEntity<List<ObjectTO>> listObjects(@PathVariable("bucketName") String bucketName,
+			@RequestParam(value = "folder", required = false) String folder) {
+		List<ObjectTO> objectList = storageService.listBucketObjects(bucketName, folder);
 		return ResponseEntity.ok(objectList);
 	}
 
@@ -81,8 +81,9 @@ public class StorageResouce {
 	 * @return lista de objetos do bucket
 	 */
 	@GetMapping("/listobjects")
-	public ResponseEntity<List<ObjectTO>> listObjects(@Valid @RequestBody BucketTO bucketTO) {
-		List<ObjectTO> objectList = storageService.listBucketObjects(bucketTO.getNome());
+	public ResponseEntity<List<ObjectTO>> listObjects(@Valid @RequestBody BucketTO bucketTO,
+			@RequestParam(value = "folder", required = false) String folder) {
+		List<ObjectTO> objectList = storageService.listBucketObjects(bucketTO.getNome(), folder);
 		return ResponseEntity.ok(objectList);
 	}
 
@@ -121,8 +122,9 @@ public class StorageResouce {
 	 */
 	@PutMapping(path = "/{bucketName}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<Void> putObject(@PathVariable("bucketName") String bucketName,
+			@RequestParam(value = "folder", required = false) String folder,
 			@RequestParam("object") MultipartFile... multipartFiles) {
-		storageService.putObject(bucketName, multipartFiles);
+		storageService.putObject(bucketName, folder, multipartFiles);
 		return ResponseEntity.noContent().build();
 	}
 
@@ -135,8 +137,9 @@ public class StorageResouce {
 	 */
 	@GetMapping(path = "/{bucketName}/info/{objectName}")
 	public ResponseEntity<ExtendedObjectTO> objectInfo(@PathVariable("bucketName") String bucketName,
-			@PathVariable("objectName") String objectName) {
-		return ResponseEntity.ok(storageService.objectInfo(bucketName, objectName));
+			@PathVariable("objectName") String objectName,
+			@RequestParam(value = "folder", required = false) String folder) {
+		return ResponseEntity.ok(storageService.objectInfo(bucketName, objectName, folder));
 	}
 
 	/**
@@ -148,9 +151,10 @@ public class StorageResouce {
 	 */
 	@GetMapping(path = "/{bucketName}/{objectName}")
 	public ResponseEntity<ByteArrayResource> getObject(@PathVariable("bucketName") String bucketName,
-			@PathVariable("objectName") String objectName) {
-		var object = storageService.objectInfo(bucketName, objectName);
-		var resource = storageService.getObject(bucketName, objectName);
+			@PathVariable("objectName") String objectName,
+			@RequestParam(value = "folder", required = false) String folder) {
+		var object = storageService.objectInfo(bucketName, objectName, folder);
+		var resource = storageService.getObject(bucketName, objectName, folder);
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + object.getNome())
 				.contentType(Utils.getMediaTypeFromContentType(object.getContentType()))
 				.contentLength(resource.contentLength()).body(resource);
