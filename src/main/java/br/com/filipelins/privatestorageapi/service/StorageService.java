@@ -32,6 +32,7 @@ import io.minio.RemoveObjectArgs;
 import io.minio.RemoveObjectsArgs;
 import io.minio.Result;
 import io.minio.StatObjectArgs;
+import io.minio.http.Method;
 import io.minio.messages.Bucket;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
@@ -139,9 +140,14 @@ public class StorageService {
 
 	public String presignedURL(@Valid ConfigPresignedURL config) {
 		try {
-			return minioStorage.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().bucket(config.getBucketName())
-					.object(config.getObjectName()).expiry(config.getExpiryTime(), TimeUnit.MINUTES)
-					.method(config.getMethod()).build());
+			if (Method.DELETE.equals(config.getMethod()) || Method.GET.equals(config.getMethod())
+					|| Method.PUT.equals(config.getMethod())) {
+				return minioStorage.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+						.bucket(config.getBucketName()).object(config.getObjectName())
+						.expiry(config.getExpiryTime(), TimeUnit.MINUTES).method(config.getMethod()).build());
+			}
+			throw new PrivateStorageException(
+					"Os métodos devem ser DELETE, PUT ou GET para gerar uma url pré-assinada");
 		} catch (Exception e) {
 			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
 		}
