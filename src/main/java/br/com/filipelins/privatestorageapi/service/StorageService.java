@@ -66,7 +66,7 @@ public class StorageService {
 	public List<ObjectTO> listBucketObjects(String bucketName, String folder) {
 		return listBucketObjects(bucketName, folder, false);
 	}
-	
+
 	public List<ObjectTO> listBucketObjects(String bucketName) {
 		return listBucketObjects(bucketName, "", true);
 	}
@@ -139,10 +139,9 @@ public class StorageService {
 
 	public String presignedURL(@Valid ConfigPresignedURL config) {
 		try {
-			return minioStorage.getPresignedObjectUrl(
-					GetPresignedObjectUrlArgs.builder().bucket(config.getBucketName()).object(config.getObjectName())
-							.expiry(config.getExpiryTime(), TimeUnit.MINUTES).method(config.getMethod()).build());
-
+			return minioStorage.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().bucket(config.getBucketName())
+					.object(config.getObjectName()).expiry(config.getExpiryTime(), TimeUnit.MINUTES)
+					.method(config.getMethod()).build());
 		} catch (Exception e) {
 			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
 		}

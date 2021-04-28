@@ -168,10 +168,14 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Método que gera uma presigned url de acordo com a configuração passada.
+	 * Método que gera uma presigned url de acordo com a configuração passada. O
+	 * tempo de expiração está configurado em minutos.
 	 * 
-	 * lembrar que se o objeto está dentro de umas pasta concatenar o nome da pasta
+	 * Lembrar que se o objeto está dentro de umas pasta concatenar o nome da pasta
 	 * + nome do objeto Ex.: "myfolder/teste.txt"
+	 * 
+	 * ATENÇÃO Ao enviar o arquivo pelo postman utilizar a opção de body > binary e
+	 * então selecionar o arquivo
 	 * 
 	 * @param configPresignedURL
 	 * @return Retorna a presigned url gerada
