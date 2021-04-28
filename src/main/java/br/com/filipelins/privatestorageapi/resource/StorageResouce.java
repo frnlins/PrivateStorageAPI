@@ -47,7 +47,7 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Cria uma bucket a partir de um nome passado no body
+	 * Cria um bucket a partir de um nome passado no body
 	 * 
 	 * @param bucketTO objeto que contém o nome do bucket
 	 * @return no header é possível ver a url para o bucket criado
@@ -64,7 +64,9 @@ public class StorageResouce {
 	 * Obtém os objetos de um bucket
 	 * 
 	 * @param bucketName nome do bucket
-	 * @return lista de objetos do bucket
+	 * @param folder     se informada, lista os objetos da pasta ex.:
+	 *                   url...?folder=myfolder
+	 * @return lista de objetos do bucket ou pasta interna do bucket
 	 */
 	@GetMapping("/{bucketName}")
 	public ResponseEntity<List<ObjectTO>> listObjects(@PathVariable("bucketName") String bucketName,
@@ -74,16 +76,15 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Este método demonstra apenas uma outra maneira de chamar e então obter os
-	 * objetos de um determinado bucket
+	 * Este método lista todos os objetos de um bucket inclusive aqueles dentro de
+	 * uma pasta, usando recursividade
 	 * 
-	 * @param bucketTO objeto contendo o nome do bucket
+	 * @param bucketName objeto contendo o nome do bucket
 	 * @return lista de objetos do bucket
 	 */
-	@GetMapping("/listobjects")
-	public ResponseEntity<List<ObjectTO>> listObjects(@Valid @RequestBody BucketTO bucketTO,
-			@RequestParam(value = "folder", required = false) String folder) {
-		List<ObjectTO> objectList = storageService.listBucketObjects(bucketTO.getNome(), folder);
+	@GetMapping("{bucketName}/listall")
+	public ResponseEntity<List<ObjectTO>> listObjects(@PathVariable String bucketName) {
+		List<ObjectTO> objectList = storageService.listBucketObjects(bucketName);
 		return ResponseEntity.ok(objectList);
 	}
 
@@ -102,6 +103,9 @@ public class StorageResouce {
 	/**
 	 * Deleta um ou mais objetos de um determinado bucket
 	 * 
+	 * Caso o objeto esteja dentro de uma pasta, basta concatenar o nome da pasta +
+	 * nome do objeto Ex.: "myfolder/teste.txt"
+	 * 
 	 * @param bucketName   nome do bucket
 	 * @param listObjectTO lista dos com o nome dos objetos a serem deletados
 	 * @return
@@ -116,7 +120,8 @@ public class StorageResouce {
 	/**
 	 * Faz upload de um ou mais arquivos para o serviço de storage
 	 * 
-	 * @param bucketName     nome do bucket onde ficarão os arquivos
+	 * @param bucketName     nome do bucket onde ficarão os objetos
+	 * @param folder         (opcional) nome da pasta onde ficarão os objetos
 	 * @param multipartFiles o(s) arquivos que serão enviados
 	 * @return
 	 */
@@ -131,8 +136,9 @@ public class StorageResouce {
 	/**
 	 * Busca informações mais detalhadas sobre um determinado objeto de um bucket
 	 * 
-	 * @param bucketName
-	 * @param objectName
+	 * @param bucketName nome do bucket onde se encontra o objeto
+	 * @param objectName nome do objeto
+	 * @param folder     nome da pasta onde está o objeto
 	 * @return
 	 */
 	@GetMapping(path = "/{bucketName}/info/{objectName}")
@@ -147,6 +153,7 @@ public class StorageResouce {
 	 * 
 	 * @param bucketName
 	 * @param objectName
+	 * @param folder
 	 * @return Array de bytes contendo o objeto do bucket.
 	 */
 	@GetMapping(path = "/{bucketName}/{objectName}")
@@ -161,7 +168,10 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Método que gera uma presigned url de acordo com a configuração passada
+	 * Método que gera uma presigned url de acordo com a configuração passada.
+	 * 
+	 * lembrar que se o objeto está dentro de umas pasta concatenar o nome da pasta
+	 * + nome do objeto Ex.: "myfolder/teste.txt"
 	 * 
 	 * @param configPresignedURL
 	 * @return Retorna a presigned url gerada

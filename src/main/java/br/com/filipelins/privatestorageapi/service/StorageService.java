@@ -66,6 +66,10 @@ public class StorageService {
 	public List<ObjectTO> listBucketObjects(String bucketName, String folder) {
 		return listBucketObjects(bucketName, folder, false);
 	}
+	
+	public List<ObjectTO> listBucketObjects(String bucketName) {
+		return listBucketObjects(bucketName, "", true);
+	}
 
 	public void deleteBucket(String bucketName) {
 		List<ObjectTO> bucketObjects = listBucketObjects(bucketName, "", true);
@@ -143,7 +147,7 @@ public class StorageService {
 			throw new PrivateStorageException("Não foi possível obter uma url pré-assinada", e);
 		}
 	}
-	
+
 	private List<ObjectTO> listBucketObjects(String bucketName, String folder, boolean recursive) {
 		folder = getFolderName(folder);
 		List<ObjectTO> objectTOList = new ArrayList<ObjectTO>();
