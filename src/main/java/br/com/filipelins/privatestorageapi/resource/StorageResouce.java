@@ -61,11 +61,11 @@ public class StorageResouce {
 	}
 
 	/**
-	 * Obtém os objetos de um bucket
+	 * Lista os objetos de um bucket
 	 * 
 	 * @param bucketName nome do bucket
 	 * @param folder     se informada, lista os objetos da pasta ex.:
-	 *                   url...?folder=myfolder
+	 *                   .../mybucket?folder=myfolder
 	 * @return lista de objetos do bucket ou pasta interna do bucket
 	 */
 	@GetMapping("/{bucketName}")

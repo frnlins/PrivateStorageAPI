@@ -26,7 +26,7 @@ public class StandardError {
 	public String getError() {
 		return error;
 	}
-	
+
 	public String getExceptionMessage() {
 		return exceptionMessage;
 	}

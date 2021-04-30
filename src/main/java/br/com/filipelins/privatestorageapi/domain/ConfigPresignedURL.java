@@ -13,16 +13,16 @@ public class ConfigPresignedURL implements Serializable {
 
 	@NotBlank(message = "{presigned.bucket.notblank}")
 	private String bucketName;
-	
+
 	@NotBlank(message = "{presigned.object.notblank}")
 	private String objectName;
-	
+
 	@NotNull(message = "{presigned.expiryTime.notnull}")
 	private Integer expiryTime;
-	
+
 	@NotBlank(message = "{presigned.method.notblank}")
 	private String method;
-	
+
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}

@@ -18,7 +18,8 @@ import br.com.filipelins.privatestorageapi.service.exception.PrivateStorageExcep
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(PrivateStorageException.class)
-	protected ResponseEntity<StandardError> handlePrivateStorageException(PrivateStorageException e, WebRequest request) {
+	protected ResponseEntity<StandardError> handlePrivateStorageException(PrivateStorageException e,
+			WebRequest request) {
 		HttpStatus status = HttpStatus.BAD_REQUEST;
 		String exceptionMessage = (e.getCause() != null) ? e.getCause().getMessage() : "";
 		StandardError err = new StandardError(status.value(), e.getMessage(), exceptionMessage);
@@ -26,12 +27,13 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
-	protected ResponseEntity<StandardError> handleIllegalArgumentException(IllegalArgumentException e, WebRequest request) {
+	protected ResponseEntity<StandardError> handleIllegalArgumentException(IllegalArgumentException e,
+			WebRequest request) {
 		HttpStatus status = HttpStatus.BAD_REQUEST;
 		StandardError err = new StandardError(status.value(), "Argumento ilegal ou não apropriado", e.getMessage());
 		return ResponseEntity.status(status).body(err);
 	}
-	
+
 	@Override
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
 			HttpHeaders headers, HttpStatus status, WebRequest request) {
@@ -39,7 +41,7 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 		ErrorResponse errResponse = getErrorResponse(ex, status, errList);
 		return ResponseEntity.status(status).body(errResponse);
 	}
-	
+
 	private ErrorResponse getErrorResponse(MethodArgumentNotValidException ex, HttpStatus status,
 			List<ObjectError> errList) {
 		return new ErrorResponse("Requisição possui campos inválidos", status.value(), status.getReasonPhrase(),
